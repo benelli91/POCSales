@@ -19,25 +19,28 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/api  ./cmd/api \
 
 # ----- Stage 3: runtime -----
 FROM alpine:3.19
-RUN apk add --no-cache ca-certificates tzdata \
- && adduser -D -u 1000 app \
- && mkdir -p /app /data \
- && chown -R app:app /app /data
+RUN apk add --no-cache ca-certificates tzdata wget \
+ && mkdir -p /app /data
 
 WORKDIR /app
-COPY --from=backend  --chown=app:app /out/api  /app/api
-COPY --from=backend  --chown=app:app /out/seed /app/seed
-COPY --from=frontend --chown=app:app /app/frontend/dist /app/web
+COPY --from=backend  /out/api  /app/api
+COPY --from=backend  /out/seed /app/seed
+COPY --from=frontend /app/frontend/dist /app/web
 
+# PORT es provisto por Railway en runtime; 8080 es el default para pruebas locales.
 ENV PORT=8080 \
     STATIC_DIR=/app/web \
     DB_PATH=/data/data.db
 
-
-USER app
+VOLUME ["/data"]
 EXPOSE 8080
 
-# seed es idempotente: crea el usuario demo solo si no existe.
-# Si seed falla no hacemos fallar el contenedor; api podrá igual arrancar
-# (p.ej. si otro proceso ya creó la DB) y Railway reportará el healthcheck.
-CMD ["/bin/sh", "-c", "/app/seed || echo 'seed: warning (continuará)'; exec /app/api"]
+# Healthcheck local (Docker). Railway usa su propia config en railway.json.
+HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
+  CMD wget -qO- "http://127.0.0.1:${PORT}/health" || exit 1
+
+# Arranque robusto:
+# 1) Loguea qué va a correr.
+# 2) Corre el seed (idempotente). Si falla no bloquea el arranque del API.
+# 3) exec al api -> PID 1 correcto para que Railway reciba las señales.
+CMD ["/bin/sh", "-c", "echo \"[entrypoint] PORT=$PORT DB_PATH=$DB_PATH STATIC_DIR=$STATIC_DIR\"; /app/seed || echo \"[entrypoint] seed: warning, continuo con api\"; exec /app/api"]
