@@ -9,7 +9,7 @@ import {
   type WizardState,
 } from '../api/client'
 import {
-  AlertCircle, AlertTriangle, ArrowLeft, Check, Flag, Info, ListChecks,
+  AlertCircle, AlertTriangle, ArrowLeft, Bot, Check, Flag, Info, ListChecks,
   Megaphone, Sparkles, Target, Users, Wallet, Wand2,
 } from 'lucide-react'
 
@@ -148,9 +148,10 @@ export default function ProjectDetail() {
             <header className="flex items-center justify-between">
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-500">Plan estratégico</p>
-                <div className="mt-1 flex items-center gap-2">
+                <div className="mt-1 flex flex-wrap items-center gap-2">
                   <h2 className="h-section">{plan.plan.headline}</h2>
                   <span className="badge bg-ink-100 text-ink-700">v{plan.version}</span>
+                  <PlanSourceBadge source={plan.plan_source} />
                 </div>
               </div>
               <span className="badge bg-brand-50 text-brand-700 ring-1 ring-brand-200/60 uppercase">{plan.plan.objective}</span>
@@ -359,6 +360,29 @@ export default function ProjectDetail() {
         )}
       </section>
     </div>
+  )
+}
+
+function PlanSourceBadge({ source }: { source?: string }) {
+  const s = source || 'template'
+  if (s === 'llm') {
+    return (
+      <span className="badge bg-violet-50 text-violet-800 ring-1 ring-violet-200/70">
+        <Bot className="h-3 w-3" /> Generado con LLM
+      </span>
+    )
+  }
+  if (s === 'llm_fallback') {
+    return (
+      <span className="badge bg-amber-50 text-amber-900 ring-1 ring-amber-200/70" title="El LLM falló o devolvió JSON inválido; se usó el generador por reglas.">
+        <AlertTriangle className="h-3 w-3" /> LLM falló → plantilla
+      </span>
+    )
+  }
+  return (
+    <span className="badge bg-ink-100 text-ink-600 ring-1 ring-ink-200/60" title="Generador determinístico por reglas (sin LLM o LLM deshabilitado).">
+      Plantilla
+    </span>
   )
 }
 

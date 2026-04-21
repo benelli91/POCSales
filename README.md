@@ -121,7 +121,7 @@ LLM_API_KEY=...
    - Destino (URL) + tracking (pixel/CAPI/eventos)
    - Historial + presupuesto diario + ventana de testeo
    - Score de completitud en vivo (`completeness_score` en la DB).
-4. **Generar plan**: persiste en `generated_plans` con versión incremental, e incluye:
+4. **Generar plan**: persiste en `generated_plans` con versión incremental y `plan_source` (`llm` | `template` | `llm_fallback`), e incluye:
    - Plan estratégico tipado (`strategy_steps`, `audiences`, `budget`, `metrics`, `risks`).
    - Brief creativo tipado (`hooks`, `headlines`, `primary_texts`, `ctas`, `formats`).
    - Lista de supuestos declarados (`assumptions[]`) con `field/issue/impact/suggestion`,
@@ -172,7 +172,7 @@ GET    /api/projects/:id/meta/campaigns
 - `organizations`, `users` — multi-tenant mínimo (1 owner por org en la POC).
 - `projects` — un negocio/cliente por proyecto, con `status` (`draft|wizard|generated|published`).
 - `wizard_answers` — JSON serializado (1:1 con project) + `completeness_score`.
-- `generated_plans` — versionado por proyecto: `plan_json`, `brief_json`, `assumptions_json`.
+- `generated_plans` — versionado por proyecto: `plan_source`, `plan_json`, `brief_json`, `assumptions_json`.
 - `meta_credentials` — token + ad account por organización.
 - `meta_campaigns` — mirror local de cada `POST /campaigns` ejecutado contra Meta.
 - `audit_log` — tabla preparada para registrar acciones (Fase 4 del plan).

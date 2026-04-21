@@ -34,10 +34,14 @@ func (r *Repo) Create(ctx context.Context, projectID int64, gp *entity.Generated
 	}
 	gp.Version = nextVersion
 	gp.ProjectID = projectID
+	src := gp.PlanSource
+	if src == "" {
+		src = "template"
+	}
 	res, err := r.db.ExecContext(ctx,
-		`INSERT INTO generated_plans (project_id, version, plan_json, brief_json, assumptions_json)
-		 VALUES (?, ?, ?, ?, ?)`,
-		projectID, nextVersion, string(planJSON), string(briefJSON), string(assJSON))
+		`INSERT INTO generated_plans (project_id, version, plan_source, plan_json, brief_json, assumptions_json)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		projectID, nextVersion, src, string(planJSON), string(briefJSON), string(assJSON))
 	if err != nil {
 		return err
 	}
@@ -49,13 +53,13 @@ func (r *Repo) Create(ctx context.Context, projectID int64, gp *entity.Generated
 
 func (r *Repo) GetLatest(ctx context.Context, projectID int64) (*entity.GeneratedPlan, error) {
 	var (
-		gp                                      entity.GeneratedPlan
-		planJSON, briefJSON, assJSON            string
+		gp                           entity.GeneratedPlan
+		planJSON, briefJSON, assJSON string
 	)
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, project_id, version, plan_json, brief_json, assumptions_json, created_at
+		`SELECT id, project_id, version, plan_source, plan_json, brief_json, assumptions_json, created_at
 		 FROM generated_plans WHERE project_id = ? ORDER BY version DESC LIMIT 1`, projectID).
-		Scan(&gp.ID, &gp.ProjectID, &gp.Version, &planJSON, &briefJSON, &assJSON, &gp.CreatedAt)
+		Scan(&gp.ID, &gp.ProjectID, &gp.Version, &gp.PlanSource, &planJSON, &briefJSON, &assJSON, &gp.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -76,7 +80,7 @@ func (r *Repo) GetLatest(ctx context.Context, projectID int64) (*entity.Generate
 
 func (r *Repo) List(ctx context.Context, projectID int64) ([]entity.GeneratedPlan, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, project_id, version, plan_json, brief_json, assumptions_json, created_at
+		`SELECT id, project_id, version, plan_source, plan_json, brief_json, assumptions_json, created_at
 		 FROM generated_plans WHERE project_id = ? ORDER BY version DESC`, projectID)
 	if err != nil {
 		return nil, err
@@ -88,7 +92,7 @@ func (r *Repo) List(ctx context.Context, projectID int64) ([]entity.GeneratedPla
 			gp                           entity.GeneratedPlan
 			planJSON, briefJSON, assJSON string
 		)
-		if err := rows.Scan(&gp.ID, &gp.ProjectID, &gp.Version, &planJSON, &briefJSON, &assJSON, &gp.CreatedAt); err != nil {
+		if err := rows.Scan(&gp.ID, &gp.ProjectID, &gp.Version, &gp.PlanSource, &planJSON, &briefJSON, &assJSON, &gp.CreatedAt); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal([]byte(planJSON), &gp.Plan)
@@ -105,9 +109,9 @@ func (r *Repo) GetByID(ctx context.Context, id int64) (*entity.GeneratedPlan, er
 		planJSON, briefJSON, assJSON string
 	)
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, project_id, version, plan_json, brief_json, assumptions_json, created_at
+		`SELECT id, project_id, version, plan_source, plan_json, brief_json, assumptions_json, created_at
 		 FROM generated_plans WHERE id = ?`, id).
-		Scan(&gp.ID, &gp.ProjectID, &gp.Version, &planJSON, &briefJSON, &assJSON, &gp.CreatedAt)
+		Scan(&gp.ID, &gp.ProjectID, &gp.Version, &gp.PlanSource, &planJSON, &briefJSON, &assJSON, &gp.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}

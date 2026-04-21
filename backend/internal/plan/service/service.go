@@ -59,15 +59,19 @@ func (s *Service) Generate(ctx context.Context, orgID, projectID int64) (*planen
 		return nil, errors.New("wizard no inicializado")
 	}
 	plan, brief, ass := Generate(project, st.Answers)
+	planSource := "template"
 	if s.planner != nil {
 		llmPlan, llmBrief, llmAss, err := s.planner.Generate(ctx, project, st.Answers)
 		if err != nil {
 			log.Printf("plan: fallback a template por error LLM: %v", err)
+			planSource = "llm_fallback"
 		} else {
 			plan, brief, ass = llmPlan, llmBrief, llmAss
+			planSource = "llm"
 		}
 	}
 	gp := &planentity.GeneratedPlan{
+		PlanSource:  planSource,
 		Plan:        plan,
 		Brief:       brief,
 		Assumptions: ass,

@@ -33,34 +33,35 @@ type MetricGoals struct {
 
 // CreativeBrief = output creativo estructurado.
 type CreativeBrief struct {
-	Hooks         []string         `json:"hooks"`
-	Headlines     []string         `json:"headlines"`
-	PrimaryTexts  []string         `json:"primary_texts"`
-	CTAs          []string         `json:"ctas"`
-	Formats       []CreativeFormat `json:"formats"`
-	DoNotMention  []string         `json:"do_not_mention,omitempty"`
+	Hooks        []string         `json:"hooks"`
+	Headlines    []string         `json:"headlines"`
+	PrimaryTexts []string         `json:"primary_texts"`
+	CTAs         []string         `json:"ctas"`
+	Formats      []CreativeFormat `json:"formats"`
+	DoNotMention []string         `json:"do_not_mention,omitempty"`
 }
 
 type CreativeFormat struct {
-	Type        string `json:"type"`        // image|video|carousel|ugc
+	Type        string `json:"type"` // image|video|carousel|ugc
 	Description string `json:"description"`
 }
 
 // Assumption = supuesto declarado del que depende el plan (trazabilidad).
 type Assumption struct {
 	Field      string `json:"field"`
-	Issue      string `json:"issue"`      // missing|weak|inferred
-	Impact     string `json:"impact"`     // baja|media|alta
+	Issue      string `json:"issue"`  // missing|weak|inferred
+	Impact     string `json:"impact"` // baja|media|alta
 	Suggestion string `json:"suggestion"`
 }
 
 // GeneratedPlan agrupa todo lo persistido (versión + timestamps).
 type GeneratedPlan struct {
-	ID          int64        `json:"id"`
-	ProjectID   int64        `json:"project_id"`
-	Version     int          `json:"version"`
-	Plan        Plan         `json:"plan"`
+	ID          int64         `json:"id"`
+	ProjectID   int64         `json:"project_id"`
+	Version     int           `json:"version"`
+	PlanSource  string        `json:"plan_source"` // llm | template | llm_fallback
+	Plan        Plan          `json:"plan"`
 	Brief       CreativeBrief `json:"brief"`
-	Assumptions []Assumption `json:"assumptions"`
-	CreatedAt   time.Time    `json:"created_at"`
+	Assumptions []Assumption  `json:"assumptions"`
+	CreatedAt   time.Time     `json:"created_at"`
 }

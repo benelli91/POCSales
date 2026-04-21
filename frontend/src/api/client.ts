@@ -123,6 +123,8 @@ export type GeneratedPlan = {
   id: number
   project_id: number
   version: number
+  /** llm = generado por LLM; template = solo reglas; llm_fallback = LLM falló y se usó plantilla */
+  plan_source: 'llm' | 'template' | 'llm_fallback' | string
   plan: Plan
   brief: CreativeBrief
   assumptions: Assumption[]
