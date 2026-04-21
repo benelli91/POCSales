@@ -33,8 +33,6 @@ ENV PORT=8080 \
     STATIC_DIR=/app/web \
     DB_PATH=/data/data.db
 
-# Permite montar un volumen de Railway en /data para persistir la SQLite.
-VOLUME ["/data"]
 
 USER app
 EXPOSE 8080
