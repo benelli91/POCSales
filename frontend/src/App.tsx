@@ -12,7 +12,14 @@ import type { ReactNode } from 'react'
 
 function Protected({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return <div className="p-10 text-slate-500">Cargando…</div>
+  if (loading) return (
+    <div className="min-h-screen grid place-items-center bg-ink-50">
+      <div className="flex items-center gap-3 text-ink-500 text-sm">
+        <span className="inline-block h-4 w-4 animate-pulse rounded-full bg-brand-gradient" />
+        Cargando…
+      </div>
+    </div>
+  )
   if (!user) return <Navigate to="/login" replace />
   return <>{children}</>
 }

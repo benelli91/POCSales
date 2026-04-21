@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, type Project, type WizardAnswers, type WizardState } from '../api/client'
+import {
+  ArrowLeft, ArrowRight, Check, Save, Sparkles,
+  Target, Package, Users, Palette, Link2, History, AlertCircle,
+} from 'lucide-react'
 
 const CREATIVE_OPTIONS = ['UGC', 'video', 'imagen', 'carrusel', 'testimonio', 'oferta']
+
+type StepDef = { id: string; title: string; icon: React.ComponentType<{ className?: string }>; desc: string }
 
 export default function Wizard() {
   const { id } = useParams<{ id: string }>()
@@ -31,127 +37,169 @@ export default function Wizard() {
   const update = (patch: Partial<WizardAnswers>) => setAnswers((prev) => ({ ...prev, ...patch }))
 
   const save = async () => {
-    setSaving(true)
-    setErr('')
+    setSaving(true); setErr('')
     try {
       const w = await api.put<WizardState>(`/projects/${projectId}/wizard`, { answers })
       setScore(w.completeness_score)
-    } catch (e) {
-      setErr((e as Error).message)
-    } finally {
-      setSaving(false)
-    }
+    } catch (e) { setErr((e as Error).message) } finally { setSaving(false) }
   }
 
   const generate = async () => {
-    setSaving(true)
-    setErr('')
+    setSaving(true); setErr('')
     try {
       await api.put<WizardState>(`/projects/${projectId}/wizard`, { answers })
       await api.post(`/projects/${projectId}/plan`)
       nav(`/projects/${projectId}`)
-    } catch (e) {
-      setErr((e as Error).message)
-    } finally {
-      setSaving(false)
-    }
+    } catch (e) { setErr((e as Error).message) } finally { setSaving(false) }
   }
 
-  const steps = useMemo(
-    () => [
-      { id: 'objetivo', title: 'Objetivo & métrica' },
-      { id: 'producto', title: 'Producto & economía unitaria' },
-      { id: 'publico', title: 'Público & data' },
-      { id: 'creativos', title: 'Creativos' },
-      { id: 'destino', title: 'Destino & tracking' },
-      { id: 'historial', title: 'Historial & presupuesto' },
-    ],
-    [],
-  )
+  const steps: StepDef[] = useMemo(() => [
+    { id: 'objetivo',  title: 'Objetivo & métrica',          icon: Target,  desc: 'Qué buscamos y cómo medimos eficiencia' },
+    { id: 'producto',  title: 'Producto & economía unitaria', icon: Package, desc: 'Ticket, margen, bundles' },
+    { id: 'publico',   title: 'Público & data',              icon: Users,   desc: 'A quién vendés y qué data tenés' },
+    { id: 'creativos', title: 'Creativos',                   icon: Palette, desc: 'Formatos, hooks y ángulos' },
+    { id: 'destino',   title: 'Destino & tracking',          icon: Link2,   desc: 'Landing, pixel, eventos clave' },
+    { id: 'historial', title: 'Historial & presupuesto',     icon: History, desc: 'Qué funcionó y cuánto invertir' },
+  ], [])
 
-  if (!project) return <div className="text-slate-500">Cargando…</div>
+  if (!project) return <div className="muted">Cargando…</div>
+
+  const StepIcon = steps[step].icon
+  const isLast = step === steps.length - 1
 
   return (
-    <div className="grid lg:grid-cols-[260px,1fr] gap-6">
-      <aside className="space-y-3">
-        <div className="card p-4">
-          <h2 className="font-semibold text-slate-900">{project.name}</h2>
-          {project.industry && <p className="text-xs text-slate-500">{project.industry}</p>}
-          <div className="mt-3">
-            <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-              <span>Completitud</span>
-              <span>{score}%</span>
-            </div>
-            <div className="w-full bg-slate-100 rounded h-2">
-              <div className="bg-brand-600 h-2 rounded" style={{ width: `${score}%` }} />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Link to={`/projects/${projectId}`} className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-ink-900">
+          <ArrowLeft className="h-4 w-4" /> Volver al proyecto
+        </Link>
+        <span className="text-xs text-ink-500">Paso {step + 1} de {steps.length}</span>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[300px,1fr]">
+        <aside className="space-y-4">
+          <div className="card p-5">
+            <h2 className="font-semibold text-ink-900">{project.name}</h2>
+            {project.industry && <p className="text-xs text-ink-500">{project.industry}</p>}
+            <div className="mt-4 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-ink-600">Completitud</span>
+                <span className="tabular-nums font-semibold text-ink-900">{score}%</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink-100">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-brand-500 to-purple-500 transition-all duration-500"
+                  style={{ width: `${score}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-ink-500">Más data, menos supuestos. Apuntá a ≥ 70% antes de generar.</p>
             </div>
           </div>
-        </div>
-        <nav className="card p-2">
-          {steps.map((s, i) => (
-            <button
-              key={s.id}
-              onClick={() => setStep(i)}
-              className={`w-full text-left px-3 py-2 text-sm rounded ${
-                step === i ? 'bg-brand-50 text-brand-700 font-medium' : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              {i + 1}. {s.title}
-            </button>
-          ))}
-        </nav>
-        <div className="text-xs text-slate-500 px-1 leading-relaxed">
-          Guardado incremental: cada vez que avanzás se persiste en SQLite. La generación valida campos y declara
-          supuestos donde falte info.
-        </div>
-      </aside>
 
-      <section className="space-y-4">
-        <div className="card p-6 space-y-4">
-          <h1 className="text-lg font-semibold text-slate-900">{steps[step].title}</h1>
+          <nav className="card overflow-hidden">
+            <ul>
+              {steps.map((s, i) => {
+                const Icon = s.icon
+                const active = i === step
+                const done = i < step
+                return (
+                  <li key={s.id}>
+                    <button
+                      onClick={() => setStep(i)}
+                      className={[
+                        'relative flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors',
+                        active ? 'bg-brand-50/60' : 'hover:bg-ink-50',
+                        i !== 0 ? 'border-t border-ink-100' : '',
+                      ].join(' ')}
+                    >
+                      <span className={[
+                        'mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs',
+                        active
+                          ? 'bg-brand-gradient text-white shadow-sm'
+                          : done
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-ink-100 text-ink-500',
+                      ].join(' ')}>
+                        {done ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+                      </span>
+                      <div className="min-w-0">
+                        <div className={active ? 'font-medium text-ink-900' : 'font-medium text-ink-700'}>
+                          <span className="text-ink-400 mr-1">{i + 1}.</span>{s.title}
+                        </div>
+                        <div className="text-[11px] text-ink-500 leading-snug">{s.desc}</div>
+                      </div>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </nav>
 
-          {step === 0 && <ObjetivoStep answers={answers} update={update} />}
-          {step === 1 && <ProductoStep answers={answers} update={update} />}
-          {step === 2 && <PublicoStep answers={answers} update={update} />}
-          {step === 3 && <CreativosStep answers={answers} update={update} />}
-          {step === 4 && <DestinoStep answers={answers} update={update} />}
-          {step === 5 && <HistorialStep answers={answers} update={update} />}
+          <div className="rounded-xl bg-ink-100/60 p-3 text-[11px] leading-relaxed text-ink-600 ring-1 ring-ink-200/70">
+            Cada "Siguiente" guarda el avance. Al generar, el sistema declara supuestos por los campos incompletos.
+          </div>
+        </aside>
 
-          {err && <div className="text-sm text-red-600">{err}</div>}
+        <section>
+          <div className="card p-6 sm:p-8 animate-fade-in">
+            <header className="flex items-start gap-3 pb-5 border-b border-ink-100">
+              <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-gradient text-white shadow-sm">
+                <StepIcon className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-500">Paso {step + 1}</p>
+                <h1 className="h-section">{steps[step].title}</h1>
+              </div>
+            </header>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100">
-            <button
-              className="btn-secondary"
-              disabled={step === 0}
-              onClick={() => {
-                void save().then(() => setStep((s) => Math.max(0, s - 1)))
-              }}
-            >
-              ← Anterior
-            </button>
-            <div className="flex gap-2">
-              <button className="btn-secondary" onClick={() => void save()} disabled={saving}>
-                {saving ? 'Guardando…' : 'Guardar'}
+            <div className="pt-6">
+              {step === 0 && <ObjetivoStep answers={answers} update={update} />}
+              {step === 1 && <ProductoStep answers={answers} update={update} />}
+              {step === 2 && <PublicoStep answers={answers} update={update} />}
+              {step === 3 && <CreativosStep answers={answers} update={update} />}
+              {step === 4 && <DestinoStep answers={answers} update={update} />}
+              {step === 5 && <HistorialStep answers={answers} update={update} />}
+            </div>
+
+            {err && (
+              <div className="mt-5 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{err}</span>
+              </div>
+            )}
+
+            <footer className="mt-8 flex flex-wrap items-center justify-between gap-2 pt-5 border-t border-ink-100">
+              <button
+                className="btn-secondary"
+                disabled={step === 0 || saving}
+                onClick={() => { void save().then(() => setStep((s) => Math.max(0, s - 1))) }}
+              >
+                <ArrowLeft className="h-4 w-4" /> Anterior
               </button>
-              {step < steps.length - 1 ? (
-                <button
-                  className="btn-primary"
-                  onClick={() => {
-                    void save().then(() => setStep((s) => Math.min(steps.length - 1, s + 1)))
-                  }}
-                  disabled={saving}
-                >
-                  Siguiente →
+              <div className="flex gap-2">
+                <button className="btn-secondary" onClick={() => void save()} disabled={saving}>
+                  <Save className="h-4 w-4" />
+                  {saving ? 'Guardando…' : 'Guardar'}
                 </button>
-              ) : (
-                <button className="btn-primary" onClick={generate} disabled={saving}>
-                  {saving ? 'Generando…' : 'Generar plan'}
-                </button>
-              )}
-            </div>
+                {!isLast ? (
+                  <button
+                    className="btn-primary"
+                    onClick={() => { void save().then(() => setStep((s) => Math.min(steps.length - 1, s + 1))) }}
+                    disabled={saving}
+                  >
+                    Siguiente <ArrowRight className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button className="btn-primary" onClick={generate} disabled={saving}>
+                    <Sparkles className="h-4 w-4" />
+                    {saving ? 'Generando…' : 'Generar plan'}
+                  </button>
+                )}
+              </div>
+            </footer>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   )
 }
@@ -160,23 +208,31 @@ type Sub = { answers: WizardAnswers; update: (p: Partial<WizardAnswers>) => void
 
 function ObjetivoStep({ answers, update }: Sub) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
         <label className="label">¿Cuál es el objetivo principal?</label>
         <div className="grid grid-cols-3 gap-2">
-          {(['ventas', 'leads', 'trafico'] as const).map((o) => (
-            <button
-              key={o}
-              type="button"
-              onClick={() => update({ objective: o })}
-              className={`btn ${answers.objective === o ? 'bg-brand-600 text-white' : 'bg-white border border-slate-300 text-slate-700'}`}
-            >
-              {o === 'trafico' ? 'tráfico' : o}
-            </button>
-          ))}
+          {(['ventas', 'leads', 'trafico'] as const).map((o) => {
+            const selected = answers.objective === o
+            return (
+              <button
+                key={o}
+                type="button"
+                onClick={() => update({ objective: o })}
+                className={[
+                  'rounded-lg px-3 py-2.5 text-sm font-medium capitalize transition',
+                  selected
+                    ? 'bg-brand-gradient text-white shadow-sm'
+                    : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:ring-ink-300',
+                ].join(' ')}
+              >
+                {o === 'trafico' ? 'tráfico' : o}
+              </button>
+            )
+          })}
         </div>
       </div>
-      <div className="grid sm:grid-cols-2 gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="label">KPI de eficiencia</label>
           <select
@@ -208,7 +264,7 @@ function ObjetivoStep({ answers, update }: Sub) {
 
 function ProductoStep({ answers, update }: Sub) {
   return (
-    <div className="grid sm:grid-cols-2 gap-4">
+    <div className="grid gap-4 sm:grid-cols-2">
       <div className="sm:col-span-2">
         <label className="label">Producto u oferta empujada</label>
         <input
@@ -252,23 +308,27 @@ function ProductoStep({ answers, update }: Sub) {
 
 function PublicoStep({ answers, update }: Sub) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
         <label className="label">¿A quién vendés?</label>
         <textarea
-          className="input min-h-[80px]"
+          className="input min-h-[100px]"
           value={answers.audience ?? ''}
           onChange={(e) => update({ audience: e.target.value })}
           placeholder="Describí brevemente el público objetivo (edad, intereses, ocupación, dolor, etc.)"
         />
       </div>
-      <label className="flex items-center gap-2 text-sm text-slate-700">
+      <label className="flex items-start gap-3 rounded-lg bg-ink-50 p-3 text-sm text-ink-700 ring-1 ring-ink-200/70 cursor-pointer">
         <input
           type="checkbox"
+          className="mt-0.5 h-4 w-4 accent-brand-600"
           checked={!!answers.has_customer_data}
           onChange={(e) => update({ has_customer_data: e.target.checked })}
         />
-        Tengo data de clientes existentes (emails, compras) para subir como audiencias custom / lookalike.
+        <div>
+          <div className="font-medium text-ink-800">Tengo data de clientes existentes</div>
+          <div className="text-xs text-ink-500">Emails, compras, etc. para subir como audiencias custom / lookalike.</div>
+        </div>
       </label>
       {answers.has_customer_data && (
         <div>
@@ -292,26 +352,34 @@ function CreativosStep({ answers, update }: Sub) {
     else update({ creative_types: [...selected, val] })
   }
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
         <label className="label">Tipos de creativos disponibles / a producir</label>
         <div className="flex flex-wrap gap-2">
-          {CREATIVE_OPTIONS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => toggle(c)}
-              className={`btn ${selected.includes(c) ? 'bg-brand-600 text-white' : 'bg-white border border-slate-300 text-slate-700'}`}
-            >
-              {c}
-            </button>
-          ))}
+          {CREATIVE_OPTIONS.map((c) => {
+            const on = selected.includes(c)
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => toggle(c)}
+                className={[
+                  'rounded-full px-3.5 py-1.5 text-xs font-medium transition',
+                  on
+                    ? 'bg-brand-gradient text-white shadow-sm'
+                    : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:ring-ink-300',
+                ].join(' ')}
+              >
+                {c}
+              </button>
+            )
+          })}
         </div>
       </div>
       <div>
         <label className="label">Hooks / ángulos a probar (uno por línea)</label>
         <textarea
-          className="input min-h-[100px]"
+          className="input min-h-[110px] font-mono text-[13px]"
           value={answers.creative_hooks ?? ''}
           onChange={(e) => update({ creative_hooks: e.target.value })}
           placeholder={'ej.\nLo que nadie te cuenta sobre X\nResolvé Y en 24hs'}
@@ -320,7 +388,7 @@ function CreativosStep({ answers, update }: Sub) {
       <div>
         <label className="label">¿Qué ya funcionó antes? (opcional)</label>
         <textarea
-          className="input min-h-[60px]"
+          className="input min-h-[70px]"
           value={answers.worked_before ?? ''}
           onChange={(e) => update({ worked_before: e.target.value })}
         />
@@ -331,8 +399,8 @@ function CreativosStep({ answers, update }: Sub) {
 
 function DestinoStep({ answers, update }: Sub) {
   return (
-    <div className="space-y-4">
-      <div className="grid sm:grid-cols-2 gap-4">
+    <div className="space-y-5">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="label">Tipo de destino</label>
           <select
@@ -368,15 +436,19 @@ function DestinoStep({ answers, update }: Sub) {
           placeholder="ej. 1.5"
         />
       </div>
-      <div className="grid sm:grid-cols-2 gap-4">
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" checked={!!answers.has_pixel} onChange={(e) => update({ has_pixel: e.target.checked })} />
-          Pixel de Meta instalado y disparando.
-        </label>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" checked={!!answers.has_capi} onChange={(e) => update({ has_capi: e.target.checked })} />
-          API de Conversiones (CAPI) configurada.
-        </label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Toggle
+          label="Pixel de Meta instalado"
+          hint="y disparando eventos"
+          checked={!!answers.has_pixel}
+          onChange={(v) => update({ has_pixel: v })}
+        />
+        <Toggle
+          label="API de Conversiones (CAPI)"
+          hint="server-side configurada"
+          checked={!!answers.has_capi}
+          onChange={(v) => update({ has_capi: v })}
+        />
       </div>
       <div>
         <label className="label">Eventos clave configurados</label>
@@ -406,56 +478,52 @@ function DestinoStep({ answers, update }: Sub) {
 
 function HistorialStep({ answers, update }: Sub) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
         <label className="label">Historial de campañas</label>
         <textarea
-          className="input min-h-[80px]"
+          className="input min-h-[90px]"
           value={answers.history ?? ''}
           onChange={(e) => update({ history: e.target.value })}
           placeholder="Resumen breve: qué funcionó, qué no, por qué."
         />
       </div>
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <label className="label">CPA histórico</label>
-          <input
-            className="input"
-            type="number"
-            step="0.01"
-            value={answers.historical_cpa ?? ''}
-            onChange={(e) => update({ historical_cpa: numOrUndef(e.target.value) })}
-          />
+          <input className="input" type="number" step="0.01" value={answers.historical_cpa ?? ''} onChange={(e) => update({ historical_cpa: numOrUndef(e.target.value) })} />
         </div>
         <div>
           <label className="label">Presupuesto diario</label>
-          <input
-            className="input"
-            type="number"
-            step="0.01"
-            value={answers.daily_budget ?? ''}
-            onChange={(e) => update({ daily_budget: numOrUndef(e.target.value) })}
-          />
+          <input className="input" type="number" step="0.01" value={answers.daily_budget ?? ''} onChange={(e) => update({ daily_budget: numOrUndef(e.target.value) })} />
         </div>
         <div>
           <label className="label">Ventana de testeo (días)</label>
-          <input
-            className="input"
-            type="number"
-            value={answers.test_window_days ?? ''}
-            onChange={(e) => update({ test_window_days: numOrUndef(e.target.value) })}
-          />
+          <input className="input" type="number" value={answers.test_window_days ?? ''} onChange={(e) => update({ test_window_days: numOrUndef(e.target.value) })} />
         </div>
       </div>
       <div>
         <label className="label">Notas adicionales</label>
-        <textarea
-          className="input min-h-[60px]"
-          value={answers.notes ?? ''}
-          onChange={(e) => update({ notes: e.target.value })}
-        />
+        <textarea className="input min-h-[70px]" value={answers.notes ?? ''} onChange={(e) => update({ notes: e.target.value })} />
       </div>
     </div>
+  )
+}
+
+function Toggle({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-start gap-3 rounded-lg bg-white p-3 text-sm ring-1 ring-ink-200 hover:ring-ink-300 cursor-pointer transition">
+      <input
+        type="checkbox"
+        className="mt-0.5 h-4 w-4 accent-brand-600"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <div>
+        <div className="font-medium text-ink-800">{label}</div>
+        {hint && <div className="text-xs text-ink-500">{hint}</div>}
+      </div>
+    </label>
   )
 }
 
