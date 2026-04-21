@@ -32,7 +32,8 @@ ENV PORT=8080 \
     STATIC_DIR=/app/web \
     DB_PATH=/data/data.db
 
-VOLUME ["/data"]
+# Nota: no usamos `VOLUME` (Railway lo prohíbe). Montá un Railway Volume
+# en /data desde el dashboard para persistir la SQLite entre deploys.
 EXPOSE 8080
 
 # Healthcheck local (Docker). Railway usa su propia config en railway.json.
