@@ -64,6 +64,11 @@ Variables de entorno opcionales:
 | `STATIC_DIR`       | *(vacío)*                                    | Si está seteado, sirve el SPA desde esa ruta |
 | `META_API_BASE`    | `https://graph.facebook.com`                 | Base de Graph API (útil para mockear)        |
 | `META_API_VERSION` | `v19.0`                                      | Versión de la Graph API                      |
+| `LLM_ENABLED`      | `false`                                      | Activa generación con LLM para plan/brief    |
+| `LLM_PROVIDER`     | `openai`                                     | Proveedor (`openai` o `minimax`)             |
+| `LLM_API_KEY`      | *(vacío)*                                    | API key del proveedor OpenAI-compatible       |
+| `LLM_BASE_URL`     | auto por provider                            | Endpoint base (override manual opcional)      |
+| `LLM_MODEL`        | auto por provider                            | Modelo (override manual opcional)             |
 
 ### Frontend
 
@@ -74,6 +79,28 @@ npm run dev
 ```
 
 Abrí http://localhost:5173. Vite proxea `/api` → `http://localhost:8080`.
+
+### Ejemplos LLM (OpenAI y MiniMax)
+
+OpenAI:
+
+```bash
+LLM_ENABLED=true
+LLM_PROVIDER=openai
+LLM_API_KEY=sk-...
+# opcional: LLM_MODEL=gpt-4o-mini
+```
+
+MiniMax:
+
+```bash
+LLM_ENABLED=true
+LLM_PROVIDER=minimax
+LLM_API_KEY=...
+# opcional: override si querés endpoint/modelo específicos
+# LLM_BASE_URL=https://api.minimax.chat/v1
+# LLM_MODEL=MiniMax-Text-01
+```
 
 ### Credenciales del seed
 
@@ -156,8 +183,8 @@ Migración inicial completa: [`backend/internal/adapters/persistence/sqlite/migr
 
 - El **access token** de Meta se guarda **en claro** en SQLite. En producción usar secret manager y nunca exponerlo
   al frontend.
-- La generación de plan/brief es **template-based** (sin LLM). Está estructurada para ser reemplazada por una capa
-  con LLM + JSON schema sin tocar el resto: ver `internal/plan/service/generator.go`.
+- La generación de plan/brief es **híbrida**: intenta LLM (si está habilitado/configurado) y, ante error,
+  hace fallback automático al generador template-based.
 - Solo se crea **la campaña** en Meta (campaign group). No se crean ad sets, ads ni creatives —
   fuera del scope de la Fase 1/4 inicial del plan.
 - Multi-tenant simplificado: 1 organización por usuario, sin invitaciones ni roles avanzados.

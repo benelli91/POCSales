@@ -26,6 +26,11 @@ type Config struct {
 	StaticDir      string
 	MetaAPIBase    string
 	MetaAPIVersion string
+	LLMEnabled     bool
+	LLMProvider    string
+	LLMAPIKey      string
+	LLMBaseURL     string
+	LLMModel       string
 }
 
 type Server struct {
@@ -41,7 +46,13 @@ type Server struct {
 func NewServer(cfg Config) *Server {
 	authSvc := usersvc.NewAuthService(cfg.DB, cfg.JWTSecret)
 	projectSvc := projsvc.NewService(cfg.DB)
-	planSvc := plansvc.NewService(cfg.DB, projectSvc)
+	planSvc := plansvc.NewService(cfg.DB, projectSvc, plansvc.Options{
+		LLMEnabled: cfg.LLMEnabled,
+		Provider:   cfg.LLMProvider,
+		LLMAPIKey:  cfg.LLMAPIKey,
+		LLMBaseURL: cfg.LLMBaseURL,
+		LLMModel:   cfg.LLMModel,
+	})
 	metaSvc := metasvc.NewService(cfg.DB, projectSvc, planSvc, cfg.MetaAPIBase, cfg.MetaAPIVersion)
 
 	return &Server{

@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/api/client.ts","./src/components/layout.tsx","./src/context/authcontext.tsx","./src/pages/dashboard.tsx","./src/pages/login.tsx","./src/pages/metasettings.tsx","./src/pages/newproject.tsx","./src/pages/projectdetail.tsx","./src/pages/register.tsx","./src/pages/wizard.tsx"],"version":"5.6.3"}

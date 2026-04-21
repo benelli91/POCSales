@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 
 	planentity "pocsales/internal/plan/entity"
 	planrepo "pocsales/internal/plan/repository"
@@ -13,12 +14,32 @@ import (
 
 // Service orquesta la generación y persistencia de planes/briefs versionados.
 type Service struct {
-	repo  planrepo.Repository
-	projs *projsvc.Service
+	repo    planrepo.Repository
+	projs   *projsvc.Service
+	planner Planner
 }
 
-func NewService(db *sql.DB, projs *projsvc.Service) *Service {
-	return &Service{repo: plansqlite.New(db), projs: projs}
+type Options struct {
+	LLMEnabled bool
+	Provider   string
+	LLMAPIKey  string
+	LLMBaseURL string
+	LLMModel   string
+}
+
+func NewService(db *sql.DB, projs *projsvc.Service, opts Options) *Service {
+	s := &Service{repo: plansqlite.New(db), projs: projs}
+	if opts.LLMEnabled && opts.LLMAPIKey != "" {
+		s.planner = NewLLMPlanner(LLMConfig{
+			Enabled:  opts.LLMEnabled,
+			Provider: opts.Provider,
+			APIKey:   opts.LLMAPIKey,
+			BaseURL:  opts.LLMBaseURL,
+			Model:    opts.LLMModel,
+		})
+		log.Printf("plan: LLM planner habilitado (provider=%s model=%s)", opts.Provider, opts.LLMModel)
+	}
+	return s
 }
 
 // Generate genera un plan a partir del wizard y lo persiste como nueva versión.
@@ -38,6 +59,14 @@ func (s *Service) Generate(ctx context.Context, orgID, projectID int64) (*planen
 		return nil, errors.New("wizard no inicializado")
 	}
 	plan, brief, ass := Generate(project, st.Answers)
+	if s.planner != nil {
+		llmPlan, llmBrief, llmAss, err := s.planner.Generate(ctx, project, st.Answers)
+		if err != nil {
+			log.Printf("plan: fallback a template por error LLM: %v", err)
+		} else {
+			plan, brief, ass = llmPlan, llmBrief, llmAss
+		}
+	}
 	gp := &planentity.GeneratedPlan{
 		Plan:        plan,
 		Brief:       brief,
