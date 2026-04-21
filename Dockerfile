@@ -19,18 +19,27 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/api  ./cmd/api \
 
 # ----- Stage 3: runtime -----
 FROM alpine:3.19
+RUN apk add --no-cache ca-certificates tzdata \
+ && adduser -D -u 1000 app \
+ && mkdir -p /app /data \
+ && chown -R app:app /app /data
+
 WORKDIR /app
-RUN apk add --no-cache ca-certificates tzdata && adduser -D -u 1000 app
-COPY --from=backend  /out/api  /app/api
-COPY --from=backend  /out/seed /app/seed
-COPY --from=frontend /app/frontend/dist /app/web
+COPY --from=backend  --chown=app:app /out/api  /app/api
+COPY --from=backend  --chown=app:app /out/seed /app/seed
+COPY --from=frontend --chown=app:app /app/frontend/dist /app/web
 
 ENV PORT=8080 \
     STATIC_DIR=/app/web \
-    DB_PATH=/app/data.db
+    DB_PATH=/data/data.db
+
+# Permite montar un volumen de Railway en /data para persistir la SQLite.
+VOLUME ["/data"]
 
 USER app
 EXPOSE 8080
 
-# Seed idempotente (no falla si el usuario demo ya existe) y luego arranca la API.
-CMD ["/bin/sh", "-c", "/app/seed; exec /app/api"]
+# seed es idempotente: crea el usuario demo solo si no existe.
+# Si seed falla no hacemos fallar el contenedor; api podrá igual arrancar
+# (p.ej. si otro proceso ya creó la DB) y Railway reportará el healthcheck.
+CMD ["/bin/sh", "-c", "/app/seed || echo 'seed: warning (continuará)'; exec /app/api"]

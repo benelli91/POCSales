@@ -193,10 +193,11 @@ Archivos clave:
    | `META_API_VERSION` | Cambiar la versión de Graph API si Meta libera nuevas.                     |
    | `PORT`             | Railway lo inyecta solo, no hace falta tocarlo.                            |
 
-4. **Persistencia de la DB SQLite**: por defecto el contenedor escribe en `/app/data.db` y se pierde con
-   cada redeploy. Para mantener datos:
-   - Crear un *Volume* en el servicio (ej. mount path `/data`).
-   - Setear `DB_PATH=/data/data.db`.
+4. **Persistencia de la DB SQLite**: el `Dockerfile` ya expone `/data` como `VOLUME` y la DB vive en
+   `/data/data.db` (`DB_PATH` por defecto). Sin volumen, los datos se pierden en cada redeploy; para
+   mantenerlos:
+   - Crear un *Volume* en el servicio de Railway y montarlo en `/data`.
+   - No hace falta tocar `DB_PATH`: ya apunta a `/data/data.db`.
 
 5. El contenedor ejecuta `seed; api`: si el usuario `demo@pocsales.local` no existe, lo crea
    (idempotente). En el primer deploy ya podés loguearte con `demo@pocsales.local / demo1234`.
